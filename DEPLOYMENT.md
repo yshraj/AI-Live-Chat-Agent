@@ -48,9 +48,9 @@ This guide covers deploying your AI Live Chat Agent application using **100% fre
    - This allows your backend to connect
 5. **Get connection string**:
    - Go to **Clusters** → Click **Connect** → **Connect your application**
-   - Copy the connection string (looks like: `mongodb+srv://username:password@cluster.mongodb.net/?retryWrites=true&w=majority`)
-   - Replace `<password>` with your database user password
-   - Add database name: `mongodb+srv://username:password@cluster.mongodb.net/spur_chat?retryWrites=true&w=majority`
+   - Copy the connection string (looks like: `mongodb+srv://<username>:<password>@cluster.mongodb.net/?retryWrites=true&w=majority`)
+   - Replace `<username>` and `<password>` with your database user credentials
+   - Add database name: `mongodb+srv://<username>:<password>@cluster.mongodb.net/spur_chat?retryWrites=true&w=majority`
    - **Save this for Step 2!**
 
 ### 1.2 Upstash Redis (Free Tier)
@@ -106,7 +106,7 @@ Choose one of these platforms:
    ```
    GOOGLE_API_KEY=your_google_api_key_here
    GOOGLE_MODEL=gemini-2.5-flash
-   MONGODB_URL=mongodb+srv://username:password@cluster.mongodb.net/spur_chat?retryWrites=true&w=majority
+   MONGODB_URL=mongodb+srv://<username>:<password>@cluster.mongodb.net/spur_chat?retryWrites=true&w=majority
    MONGODB_DB_NAME=spur_chat
    REDIS_URL=redis://default:your_token@xxx.upstash.io:6379
    ```
@@ -375,7 +375,7 @@ After deploying, you need to seed FAQs in your MongoDB Atlas database.
 
 1. **Update your local `.env`**:
    ```bash
-   MONGODB_URL=mongodb+srv://username:password@cluster.mongodb.net/spur_chat?retryWrites=true&w=majority
+   MONGODB_URL=mongodb+srv://<username>:<password>@cluster.mongodb.net/spur_chat?retryWrites=true&w=majority
    MONGODB_DB_NAME=spur_chat
    ```
 
