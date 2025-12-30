@@ -1,0 +1,28 @@
+# Render.com deployment configuration
+# This file makes it easier to deploy to Render.com
+# See: https://render.com/docs/yaml-spec
+
+services:
+  - type: web
+    name: spur-chat-backend
+    env: python
+    region: oregon  # Change to your preferred region
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: GOOGLE_API_KEY
+        sync: false  # Set this in Render dashboard
+      - key: GOOGLE_MODEL
+        value: gemini-2.5-flash
+      - key: MONGODB_URL
+        sync: false  # Set this in Render dashboard
+      - key: MONGODB_DB_NAME
+        value: spur_chat
+      - key: UPSTASH_REDIS_REST_URL
+        sync: false  # Set this in Render dashboard
+      - key: UPSTASH_REDIS_REST_TOKEN
+        sync: false  # Set this in Render dashboard
+      - key: CORS_ORIGINS
+        sync: false  # Set this to your frontend URL(s), comma-separated
+
