@@ -15,7 +15,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-# Sample FAQs for a fictional e-commerce store
+# FAQs for VibeThreads - Gen Z Clothing Brand
+# Specializing in oversized t-shirts, streetwear, and accessories
 SAMPLE_FAQS = [
     {
         "category": "Shipping",
@@ -33,49 +34,114 @@ SAMPLE_FAQS = [
         "answer": "Standard shipping takes 5-7 business days. Express shipping takes 2-3 business days. Processing time is 1-2 business days before your order ships."
     },
     {
+        "category": "Shipping",
+        "question": "Do you offer international shipping?",
+        "answer": "Yes! We ship worldwide to over 50 countries. International shipping rates and delivery times vary by location. Check out our shipping calculator at checkout for exact rates and estimated delivery times."
+    },
+    {
         "category": "Returns",
         "question": "What is your return policy?",
-        "answer": "We offer a 30-day return policy. Items must be unused, in original packaging, and with tags attached. Returns are free for orders over $50. To initiate a return, please contact our support team with your order number."
+        "answer": "We offer a 30-day return policy. Items must be unused, unwashed, in original packaging, and with tags attached. Returns are free for orders over $50. To initiate a return, contact our support team with your order number or use the return portal in your account."
     },
     {
         "category": "Returns",
         "question": "How do I return an item?",
-        "answer": "To return an item, please contact our support team with your order number. We'll provide you with a return authorization and shipping label. Items must be returned within 30 days of delivery, unused and in original packaging."
+        "answer": "To return an item, contact our support team with your order number or visit your account dashboard. We'll provide you with a return authorization and prepaid shipping label. Items must be returned within 30 days of delivery, unused and in original packaging with tags attached."
     },
     {
         "category": "Returns",
         "question": "What is your refund policy?",
-        "answer": "Refunds are processed within 5-7 business days after we receive your returned item. The refund will be issued to the original payment method. Shipping costs are non-refundable unless the return is due to our error."
+        "answer": "Refunds are processed within 5-7 business days after we receive your returned item. The refund will be issued to the original payment method. Shipping costs are non-refundable unless the return is due to our error or a defective item."
     },
     {
-        "category": "Support",
-        "question": "What are your support hours?",
-        "answer": "Our customer support team is available Monday through Friday, 9 AM to 6 PM EST. You can reach us via email, live chat, or phone. We typically respond to emails within 24 hours."
+        "category": "Returns",
+        "question": "Can I exchange an item for a different size?",
+        "answer": "Yes! We offer free exchanges for size issues within 30 days. Contact support with your order number and the size you need. If the new size is in stock, we'll process the exchange. If not, we'll refund and you can reorder."
     },
     {
-        "category": "Support",
-        "question": "How can I contact customer support?",
-        "answer": "You can contact our customer support team via email at support@example.com, through our live chat widget on the website, or by calling 1-800-EXAMPLE. We're available Monday through Friday, 9 AM to 6 PM EST."
+        "category": "Products",
+        "question": "What sizes do your oversized t-shirts come in?",
+        "answer": "Our oversized t-shirts come in sizes XS through 3XL. They're designed with a relaxed, boxy fit perfect for that streetwear vibe. Check each product page for specific size charts and measurements. Most styles run true to size for an oversized look."
+    },
+    {
+        "category": "Products",
+        "question": "How do I choose the right size for oversized fit?",
+        "answer": "For a true oversized look, go one size up from your usual size. For a slightly relaxed fit, stick with your regular size. Check our size guide on each product page for exact measurements. Our oversized tees are designed to be roomy and comfortable."
+    },
+    {
+        "category": "Products",
+        "question": "What materials are your t-shirts made from?",
+        "answer": "Our t-shirts are made from 100% premium cotton or cotton blends for maximum comfort. We use soft, breathable fabrics that hold up wash after wash. Each product page lists the exact material composition. All items are pre-shrunk to maintain their fit."
+    },
+    {
+        "category": "Products",
+        "question": "Do you have accessories?",
+        "answer": "Yes! We have a full accessories collection including bucket hats, beanies, socks, tote bags, phone cases, and jewelry. Check out our accessories section for the latest drops. New items drop every week!"
+    },
+    {
+        "category": "Products",
+        "question": "Are your products limited edition?",
+        "answer": "Many of our designs are limited edition drops that sell out fast! We release new collections monthly. Follow us on social media @vibethreads for drop announcements. Once a style sells out, it may not restock, so grab your favorites while they last!"
     },
     {
         "category": "Products",
         "question": "Do you offer product warranties?",
-        "answer": "Yes, all our products come with a 1-year manufacturer's warranty covering defects in materials and workmanship. Extended warranties are available for select items at checkout."
+        "answer": "Yes, all our products come with a 1-year warranty covering defects in materials and workmanship. If you receive a defective item, contact us immediately with photos and your order number for a free replacement or refund."
     },
     {
         "category": "Products",
         "question": "Can I track my order?",
-        "answer": "Yes, once your order ships, you'll receive a tracking number via email. You can track your order status in your account dashboard or by clicking the tracking link in the email."
+        "answer": "Yes, once your order ships, you'll receive a tracking number via email. You can track your order status in your account dashboard or by clicking the tracking link in the email. We'll also send you updates as your package moves through shipping."
+    },
+    {
+        "category": "Products",
+        "question": "Do you offer gift wrapping?",
+        "answer": "Yes! We offer gift wrapping for an additional $5. Select the gift wrap option at checkout and add a personalized message. Perfect for birthdays, holidays, or just showing someone you care. Gift receipts are included automatically."
+    },
+    {
+        "category": "Support",
+        "question": "What are your support hours?",
+        "answer": "Our customer support team is available Monday through Friday, 9 AM to 6 PM EST, and Saturday 10 AM to 4 PM EST. We typically respond to emails and live chat within 24 hours. For urgent issues, use our live chat for faster response times."
+    },
+    {
+        "category": "Support",
+        "question": "How can I contact customer support?",
+        "answer": "You can reach us via email at support@vibethreads.com, through our live chat widget on the website, or DM us on Instagram @vibethreads. We're available Monday-Friday 9 AM-6 PM EST and Saturday 10 AM-4 PM EST. We're here to help!"
+    },
+    {
+        "category": "Support",
+        "question": "Do you have a student discount?",
+        "answer": "Yes! Students get 15% off with a valid student email. Sign up for our newsletter to get your student discount code. We also run flash sales and promo codes on our social media @vibethreads - follow us for the latest deals!"
     },
     {
         "category": "Payment",
         "question": "What payment methods do you accept?",
-        "answer": "We accept all major credit cards (Visa, Mastercard, American Express), PayPal, Apple Pay, and Google Pay. All payments are processed securely through encrypted connections."
+        "answer": "We accept all major credit cards (Visa, Mastercard, American Express, Discover), PayPal, Apple Pay, Google Pay, Shop Pay, and Afterpay for flexible payments. All payments are processed securely through encrypted connections."
     },
     {
         "category": "Payment",
         "question": "Is my payment information secure?",
-        "answer": "Yes, we use industry-standard SSL encryption to protect your payment information. We never store your full credit card details on our servers. All payments are processed through secure, PCI-compliant payment gateways."
+        "answer": "Yes, we use industry-standard SSL encryption to protect your payment information. We never store your full credit card details on our servers. All payments are processed through secure, PCI-compliant payment gateways. Your data is safe with us!"
+    },
+    {
+        "category": "Payment",
+        "question": "Do you offer payment plans?",
+        "answer": "Yes! We partner with Afterpay and Klarna to offer flexible payment plans. Split your purchase into 4 interest-free payments. Select Afterpay or Klarna at checkout to see if you qualify. It's super easy and no credit check required!"
+    },
+    {
+        "category": "General",
+        "question": "What is VibeThreads?",
+        "answer": "VibeThreads is a Gen Z-focused clothing brand specializing in oversized t-shirts, streetwear, and accessories. We're all about self-expression, comfort, and that perfect oversized fit. Our designs are fresh, our vibes are immaculate, and our community is everything."
+    },
+    {
+        "category": "General",
+        "question": "Do you have a loyalty program?",
+        "answer": "Yes! Join our Vibe Squad loyalty program and earn points with every purchase. Get 1 point per dollar spent, plus bonus points for reviews and referrals. Redeem points for discounts and exclusive early access to new drops. Sign up is free!"
+    },
+    {
+        "category": "General",
+        "question": "How do I stay updated on new drops?",
+        "answer": "Follow us on Instagram @vibethreads and TikTok @vibethreads for the latest drops, styling tips, and behind-the-scenes content. Sign up for our newsletter to get early access and exclusive discounts. New collections drop monthly!"
     }
 ]
 

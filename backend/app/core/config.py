@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     
     # Application Settings
     max_message_length: int = 2000
-    llm_max_tokens: int = 4000  # Increased significantly to allow complete, detailed responses
+    llm_max_tokens: int = 500  # Limited to encourage brief responses (3-4 lines max)
     llm_temperature: float = 0.7
     message_history_limit: int = 10
     

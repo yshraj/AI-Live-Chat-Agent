@@ -85,46 +85,68 @@ async def generate_reply(
         LLMServiceException: If LLM API call fails
     """
     try:
-        # Build optimized system prompt with clear role definition and STRICT brevity requirements
-        system_prompt = """You are a customer support agent for an e-commerce store. You work for this store and help customers with their questions.
+        # Build optimized system prompt with STRICT brevity requirements and VibeThreads brand voice
+        system_prompt = """You are a customer support agent for VibeThreads, a Gen Z-focused clothing brand specializing in oversized t-shirts, streetwear, and accessories. You work for VibeThreads and help customers with their questions.
 
-**Your Role:** You represent the store and provide helpful information about products, orders, shipping, returns, and store policies. You ARE part of the store's support team.
+**Brand Identity - VibeThreads:**
+- Gen Z-focused streetwear brand
+- Specializes in oversized t-shirts, accessories, and trendy clothing
+- Values: Self-expression, comfort, authenticity, community
+- Tone: Casual, friendly, relatable, energetic but not overly slangy
+- We're about that perfect oversized fit and fresh designs
 
-**CRITICAL - Response Length Rules:**
-- Keep answers BRIEF and CONCISE. Average response should be 3-4 lines maximum.
-- For short questions, give short answers (1-2 lines).
-- Only use bullet points (max 3-4) if absolutely necessary for clarity.
-- NEVER write long paragraphs. Use brief, direct sentences.
-- Format: Brief sentences, not paragraphs. Be conversational but concise.
-- If a question needs detail, provide ONLY the essential information in 3-4 lines or 3-4 brief bullet points.
+**Your Role:** You represent VibeThreads and provide helpful information about products, orders, shipping, returns, and store policies. You ARE part of the VibeThreads support team. Be enthusiastic about our products but keep it real.
 
-**Response Style:** Be warm, professional, and BRIEF. Get to the point quickly. Customers want quick answers, not essays.
+**MANDATORY Response Length Rules (STRICTLY ENFORCE):**
+- MAXIMUM 3-4 lines per response. NO EXCEPTIONS.
+- For simple questions, use 1-2 lines only.
+- Use bullet points ONLY if absolutely necessary (max 3-4 bullets, each 1 line).
+- NEVER write paragraphs. Use brief, direct sentences.
+- NEVER exceed 4 lines total. If you need more space, prioritize the most important info.
+- Be conversational but EXTREMELY concise.
 
-**Important:** Always act as if you work for the store. Never say you don't sell products or that you're just an AI. You are the store's support agent helping customers.
+**Brand Voice Guidelines:**
+- Use casual, friendly language (e.g., "Hey!", "No worries", "Totally get it")
+- Show enthusiasm but stay professional
+- Use Gen Z-friendly terms naturally (e.g., "vibe", "fit", "drop") but don't overdo it
+- Be helpful and authentic - like talking to a friend who works at the store
+- Keep it brief and to the point - Gen Z values quick, clear answers
 
-**Scope:** Only answer store-related questions. For out-of-scope questions, redirect: "I'm here to help with our store, products, orders, shipping, and returns. How can I assist you?"
+**Response Format Examples:**
+- Good: "Hey! We accept returns within 30 days. Items need to be unused with tags attached. Hit us up with your order number and we'll get you sorted!"
+- Bad: Long paragraphs explaining every detail in overly formal language.
 
-**Limitations:** You provide information only. For order changes/refunds, direct customers to contact support."""
+**Response Style:** Casual, friendly, enthusiastic, and BRIEF. Sound like a helpful Gen Z person who genuinely cares. Get straight to the point - customers want quick answers, not essays.
+
+**Important:** Always act as if you work for VibeThreads. Never say you don't sell products or that you're just an AI. You are VibeThreads' support agent helping customers find their perfect fit and vibe.
+
+**Scope:** Only answer VibeThreads-related questions (products, orders, shipping, returns, sizing, accessories, etc.). For out-of-scope questions, redirect: "I'm here to help with VibeThreads products, orders, shipping, and returns. What can I help you with?"
+
+**Limitations:** You provide information only. For order changes/refunds, direct customers to contact support@vibethreads.com or use the live chat."""
         
         # Add FAQ context if available
         if faq_context:
-            system_prompt = f"{system_prompt}\n\n**FAQ:**\n{faq_context}\n\nUse FAQ info when relevant. Provide complete, detailed answers based on this information."
+            system_prompt = f"{system_prompt}\n\n**FAQ:**\n{faq_context}\n\nUse FAQ info when relevant. Extract ONLY the essential information and keep your response to 3-4 lines maximum. Be brief and concise."
         
         # Build conversation history for Gemini
         formatted_history = format_messages_for_gemini(conversation_history)
         
         # Prepare the full conversation with system prompt
         # Gemini doesn't support system messages directly, so we prepend it to the first user message
+        # Add brevity reminder to user message
+        brevity_reminder = "\n\n[IMPORTANT: Keep your response to 3-4 lines maximum. Be brief and concise.]"
+        
         if len(formatted_history) == 0:
             # First message: include full system prompt
-            full_user_message = f"{system_prompt}\n\nUser: {user_message}"
+            full_user_message = f"{system_prompt}\n\nUser: {user_message}{brevity_reminder}"
             chat_history = []
         else:
             # Subsequent messages: include system prompt only if FAQ context is new
             if faq_context:
-                full_user_message = f"{system_prompt}\n\nUser: {user_message}"
+                full_user_message = f"{system_prompt}\n\nUser: {user_message}{brevity_reminder}"
             else:
-                full_user_message = user_message
+                # Still add brevity reminder even without system prompt
+                full_user_message = f"{user_message}{brevity_reminder}"
             chat_history = formatted_history
         
         # Call Gemini API (run in executor since it's synchronous)
@@ -197,6 +219,36 @@ async def generate_reply(
         if not reply_text:
             raise LLMServiceException("Empty response from LLM")
         
+        # Post-process to enforce brevity: limit to 4 lines maximum
+        lines = reply_text.split('\n')
+        if len(lines) > 4:
+            # Take first 4 lines and truncate if needed
+            reply_text = '\n'.join(lines[:4])
+            # Remove any incomplete sentences at the end
+            if reply_text and not reply_text[-1] in '.!?':
+                # Find last complete sentence
+                last_period = reply_text.rfind('.')
+                last_exclamation = reply_text.rfind('!')
+                last_question = reply_text.rfind('?')
+                last_sentence_end = max(last_period, last_exclamation, last_question)
+                if last_sentence_end > len(reply_text) * 0.5:  # Only truncate if we keep at least 50%
+                    reply_text = reply_text[:last_sentence_end + 1]
+            logger.info(f"Response truncated to 4 lines for brevity (original: {len(lines)} lines)")
+        
+        # Also limit character count (approximately 500 chars = ~3-4 lines)
+        if len(reply_text) > 500:
+            # Truncate at last complete sentence before 500 chars
+            truncated = reply_text[:500]
+            last_period = truncated.rfind('.')
+            last_exclamation = truncated.rfind('!')
+            last_question = truncated.rfind('?')
+            last_sentence_end = max(last_period, last_exclamation, last_question)
+            if last_sentence_end > 300:  # Only truncate if we keep substantial content
+                reply_text = reply_text[:last_sentence_end + 1]
+            else:
+                reply_text = truncated + "..."
+            logger.info(f"Response truncated to ~500 chars for brevity (original: {len(response.text)} chars)")
+        
         # Check finish reason to detect truncation
         finish_reason = "UNKNOWN"
         try:
@@ -211,7 +263,7 @@ async def generate_reply(
         elif reply_text.endswith("...") and len(reply_text) > 100:
             logger.warning(f"Response might be truncated (ends with '...'). Length: {len(reply_text)}")
         
-        logger.info(f"Generated reply (length: {len(reply_text)}, finish_reason: {finish_reason})")
+        logger.info(f"Generated reply (length: {len(reply_text)}, lines: {len(reply_text.split(chr(10)))}, finish_reason: {finish_reason})")
         
         return reply_text
         
