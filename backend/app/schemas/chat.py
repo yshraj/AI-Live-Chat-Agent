@@ -27,3 +27,7 @@ class ChatHistoryResponse(BaseModel):
     """Response schema for conversation history."""
     messages: list[dict] = Field(..., description="List of messages")
 
+
+class ChatSuggestionsResponse(BaseModel):
+    """Response schema for chat suggestions."""
+    suggestions: list[str] = Field(..., description="List of suggested prompts")

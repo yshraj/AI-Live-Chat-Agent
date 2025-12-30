@@ -1,0 +1,45 @@
+.logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.logo__circle {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+  animation: logoPopInOut 3s ease-in-out infinite;
+  position: relative;
+}
+
+/* Size variants */
+.logo--small {
+  width: 24px;
+  height: 24px;
+}
+
+.logo--medium {
+  width: 32px;
+  height: 32px;
+}
+
+.logo--large {
+  width: 48px;
+  height: 48px;
+}
+
+/* Animations */
+@keyframes logoPopInOut {
+  0%, 100% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+}
+

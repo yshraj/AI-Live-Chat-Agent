@@ -130,4 +130,13 @@ class Conversation:
                 {"_id": self._id},
                 {"$set": {"message_count": actual_count}}
             )
+    
+    @classmethod
+    def find_all(cls, limit: Optional[int] = None, sort_by: str = "updated_at", order: int = -1) -> list["Conversation"]:
+        """Find all conversations, optionally limited and sorted."""
+        collection = cls.get_collection()
+        cursor = collection.find().sort(sort_by, order)
+        if limit:
+            cursor = cursor.limit(limit)
+        return [cls.from_dict(doc) for doc in cursor]
 

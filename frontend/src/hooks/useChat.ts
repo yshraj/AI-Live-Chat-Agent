@@ -100,6 +100,7 @@ export function useChat() {
     setMessages([]);
     setError(null);
     storage.clearSessionId();
+    storage.clearUsedSuggestions(); // Reset suggestions when clearing chat
     setSessionId(null);
   }, []);
 

@@ -1,6 +1,7 @@
 import { Message as MessageType } from "../../types/chat";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Logo } from "./Logo";
 import "./Message.css";
 
 interface MessageProps {
@@ -14,7 +15,7 @@ export function Message({ message }: MessageProps) {
     <div className={`message ${isUser ? "message--user" : "message--ai"}`}>
       {!isUser && (
         <div className="message__avatar">
-          <span className="message__avatar-icon">✨</span>
+          <Logo size="small" />
         </div>
       )}
       <div className="message__content">

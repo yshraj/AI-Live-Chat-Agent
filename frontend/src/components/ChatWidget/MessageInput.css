@@ -7,6 +7,18 @@
   backdrop-filter: blur(10px);
   border-top: 1px solid rgba(0, 0, 0, 0.06);
   flex-shrink: 0;
+  animation: inputSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
+}
+
+@keyframes inputSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .message-input__suggestions {
@@ -20,24 +32,57 @@
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 20px;
+  font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 400;
   font-size: 14px;
-  font-weight: 500;
   color: #4b5563;
   cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
+  animation: suggestionFadeIn 0.4s ease-out;
+  position: relative;
+  overflow: hidden;
+}
+
+.message-input__suggestion-button::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(99, 102, 241, 0.1);
+  transform: translate(-50%, -50%);
+  transition: width 0.4s ease, height 0.4s ease;
+}
+
+.message-input__suggestion-button:hover::before {
+  width: 200px;
+  height: 200px;
 }
 
 .message-input__suggestion-button:hover {
   background: rgba(255, 255, 255, 1);
   border-color: rgba(99, 102, 241, 0.3);
   color: #6366f1;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.15);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
 }
 
 .message-input__suggestion-button:active {
-  transform: translateY(0);
+  transform: translateY(0) scale(0.98);
+}
+
+@keyframes suggestionFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .message-input__form {
@@ -51,7 +96,8 @@
   padding: 12px 20px;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 24px;
-  font-family: inherit;
+  font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 400;
   font-size: 15px;
   resize: none;
   min-height: 48px;
@@ -131,12 +177,35 @@
     0 4px 12px rgba(99, 102, 241, 0.3),
     0 2px 4px rgba(99, 102, 241, 0.2);
   padding: 0;
+  position: relative;
+  overflow: hidden;
 }
 
 .message-input__button::before {
   content: '→';
   font-size: 20px;
   line-height: 1;
+  position: relative;
+  z-index: 1;
+  transition: transform 0.3s ease;
+}
+
+.message-input__button::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transform: translate(-50%, -50%);
+  transition: width 0.4s ease, height 0.4s ease;
+}
+
+.message-input__button:hover:not(:disabled)::after {
+  width: 100px;
+  height: 100px;
 }
 
 .message-input__button:hover:not(:disabled) {
@@ -147,8 +216,12 @@
     0 4px 8px rgba(99, 102, 241, 0.3);
 }
 
+.message-input__button:hover:not(:disabled)::before {
+  transform: translateX(2px);
+}
+
 .message-input__button:active:not(:disabled) {
-  transform: translateY(0) scale(1);
+  transform: translateY(0) scale(0.98);
   box-shadow: 
     0 2px 8px rgba(99, 102, 241, 0.3),
     0 1px 2px rgba(99, 102, 241, 0.2);

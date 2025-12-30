@@ -19,6 +19,18 @@
   position: relative;
   z-index: 1;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  animation: widgetFadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes widgetFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .chat-widget:hover {
@@ -67,6 +79,18 @@
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   flex-shrink: 0;
   transition: background 0.3s ease;
+  animation: headerSlideDown 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+}
+
+@keyframes headerSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .chat-widget__title {
@@ -75,41 +99,15 @@
   font-weight: 600;
   color: #1a1a1a;
   letter-spacing: -0.3px;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 400;
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.chat-widget__title-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
-  position: relative;
+.chat-widget__logo {
   flex-shrink: 0;
-}
-
-.chat-widget__title-icon::after {
-  content: '✨';
-  position: absolute;
-  font-size: 16px;
-  animation: sparkle 2s ease-in-out infinite;
-}
-
-@keyframes sparkle {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1) rotate(0deg);
-  }
-  50% {
-    opacity: 0.7;
-    transform: scale(1.1) rotate(180deg);
-  }
 }
 
 .chat-widget__clear {
@@ -119,8 +117,9 @@
   border: none;
   border-radius: 12px;
   cursor: pointer;
+  font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 400;
   font-size: 14px;
-  font-weight: 500;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -139,6 +138,8 @@
   background-color: #fff3cd;
   color: #856404;
   border-top: 1px solid #ffeaa7;
+  font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 400;
   font-size: 14px;
   flex-shrink: 0;
 }

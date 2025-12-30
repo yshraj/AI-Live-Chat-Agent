@@ -8,7 +8,7 @@ services:
     env: python
     region: oregon  # Change to your preferred region
     plan: free
-    buildCommand: cd backend && pip install --upgrade pip setuptools wheel && pip install torch --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements.txt
+    buildCommand: cd backend && pip install --upgrade pip setuptools wheel && pip install torch --index-url https://download.pytorch.org/whl/cpu && pip install -r requirements.txt && pip install torch --index-url https://download.pytorch.org/whl/cpu --upgrade --force-reinstall && python -c "import torch; print(f'PyTorch version: {torch.__version__}, CUDA available: {torch.cuda.is_available()}')"
     startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1 --limit-concurrency 10
     envVars:
       - key: PYTHON_VERSION

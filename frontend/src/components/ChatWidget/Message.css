@@ -1,7 +1,7 @@
 .message {
   display: flex;
   margin-bottom: 16px;
-  animation: messageSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: messageSlideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   padding: 0 8px;
   opacity: 0;
   animation-fill-mode: forwards;
@@ -10,7 +10,7 @@
 @keyframes messageSlideIn {
   from {
     opacity: 0;
-    transform: translateY(12px) scale(0.96);
+    transform: translateY(16px) scale(0.95);
   }
   to {
     opacity: 1;
@@ -29,34 +29,12 @@
 }
 
 .message__avatar {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #8b5cf6 0%, #3b82f6 100%);
   flex-shrink: 0;
-  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.25);
+  margin-top: 4px;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 4px;
-  position: relative;
-}
-
-.message__avatar-icon {
-  font-size: 16px;
-  animation: sparklePulse 2s ease-in-out infinite;
-  display: block;
-}
-
-@keyframes sparklePulse {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1) rotate(0deg);
-  }
-  50% {
-    opacity: 0.8;
-    transform: scale(1.1) rotate(180deg);
-  }
 }
 
 .message__content {
@@ -66,6 +44,8 @@
   word-wrap: break-word;
   word-break: break-word;
   line-height: 1.6;
+  font-family: 'Google Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+  font-weight: 400;
   font-size: 15px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
   position: relative;

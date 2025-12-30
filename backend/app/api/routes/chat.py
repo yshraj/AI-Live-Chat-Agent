@@ -1,7 +1,8 @@
 """Chat API routes."""
 from fastapi import APIRouter, HTTPException, status
-from app.schemas.chat import ChatMessageRequest, ChatMessageResponse, ChatHistoryResponse
+from app.schemas.chat import ChatMessageRequest, ChatMessageResponse, ChatHistoryResponse, ChatSuggestionsResponse
 from app.services.chat_service import process_message, get_conversation_history
+from app.services.suggestion_service import analyze_user_messages
 from app.core.exceptions import ChatException, LLMServiceException, DatabaseException, ValidationException
 from app.models.conversation import Conversation
 from app.models.message import Message
@@ -90,6 +91,32 @@ async def get_history(session_id: str):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to fetch conversation history"
+        )
+
+
+@router.get("/suggestions", response_model=ChatSuggestionsResponse)
+async def get_suggestions():
+    """
+    Get chat suggestions based on analyzed ingested data.
+    
+    Analyzes user messages from conversations to generate contextual suggestions.
+    
+    Returns:
+        ChatSuggestionsResponse with list of suggested prompts
+    """
+    try:
+        suggestions = analyze_user_messages(limit=100)
+        return ChatSuggestionsResponse(suggestions=suggestions)
+    except Exception as e:
+        logger.error(f"Error generating suggestions: {e}", exc_info=True)
+        # Return default suggestions on error - support-focused
+        return ChatSuggestionsResponse(
+            suggestions=[
+                "What is your return policy?",
+                "How can you help me?",
+                "What are your shipping options?",
+                "Tell me about your products"
+            ]
         )
 
 
