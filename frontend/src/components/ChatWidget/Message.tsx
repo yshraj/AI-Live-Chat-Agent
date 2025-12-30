@@ -12,6 +12,11 @@ export function Message({ message }: MessageProps) {
 
   return (
     <div className={`message ${isUser ? "message--user" : "message--ai"}`}>
+      {!isUser && (
+        <div className="message__avatar">
+          <span className="message__avatar-icon">✨</span>
+        </div>
+      )}
       <div className="message__content">
         {isUser ? (
           message.content

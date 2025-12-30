@@ -13,10 +13,34 @@ body {
   color: #1a1a1a;
   font-feature-settings: "kern" 1;
   text-rendering: optimizeLegibility;
+  overflow-x: hidden;
 }
 
 #root {
   width: 100%;
   min-height: 100vh;
+}
+
+/* Smooth scrolling for all elements */
+* {
+  scroll-behavior: smooth;
+}
+
+/* Better focus styles */
+*:focus-visible {
+  outline: 2px solid rgba(99, 102, 241, 0.5);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Smooth transitions for interactive elements */
+button, a, input, textarea {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Prevent text selection on UI elements */
+button, .message-input__suggestion-button {
+  user-select: none;
+  -webkit-user-select: none;
 }
 

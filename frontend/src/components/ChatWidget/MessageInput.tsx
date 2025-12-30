@@ -6,6 +6,13 @@ interface MessageInputProps {
   disabled?: boolean;
 }
 
+const SUGGESTIONS = [
+  "Create in-depth analysis",
+  "Identify actionable tasks",
+  "Summarize key points",
+  "Write an email to the team"
+];
+
 export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
   const [input, setInput] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -30,6 +37,12 @@ export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
     }
   };
 
+  const handleSuggestionClick = (suggestion: string) => {
+    if (!disabled) {
+      onSendMessage(suggestion);
+    }
+  };
+
   const handleKeyPress = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -38,27 +51,43 @@ export function MessageInput({ onSendMessage, disabled }: MessageInputProps) {
   };
 
   return (
-    <form className="message-input" onSubmit={handleSubmit}>
-      <textarea
-        ref={textareaRef}
-        className="message-input__field"
-        value={input}
-        onChange={(e) => setInput(e.target.value)}
-        onKeyDown={handleKeyPress}
-        placeholder="Message"
-        disabled={disabled}
-        rows={1}
-        maxLength={2000}
-      />
-      <button
-        type="submit"
-        className="message-input__button"
-        disabled={!input.trim() || disabled}
-        aria-label="Send message"
-      >
-        Send
-      </button>
-    </form>
+    <div className="message-input">
+      <div className="message-input__suggestions">
+        {SUGGESTIONS.slice(0, 2).map((suggestion, index) => (
+          <button
+            key={index}
+            type="button"
+            className="message-input__suggestion-button"
+            onClick={() => handleSuggestionClick(suggestion)}
+            disabled={disabled}
+          >
+            {suggestion}
+          </button>
+        ))}
+      </div>
+      <form className="message-input__form" onSubmit={handleSubmit}>
+        <div className="message-input__field-wrapper">
+          <textarea
+            ref={textareaRef}
+            className="message-input__field"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyPress}
+            placeholder="Ask, write or search for anything..."
+            disabled={disabled}
+            rows={1}
+            maxLength={2000}
+            data-has-icon="true"
+          />
+        </div>
+        <button
+          type="submit"
+          className="message-input__button"
+          disabled={!input.trim() || disabled}
+          aria-label="Send message"
+        />
+      </form>
+    </div>
   );
 }
 

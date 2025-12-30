@@ -10,7 +10,10 @@ export function ChatWidget() {
   return (
     <div className="chat-widget">
       <div className="chat-widget__header">
-        <h2 className="chat-widget__title">AI Support Agent</h2>
+        <h2 className="chat-widget__title">
+          <span className="chat-widget__title-icon"></span>
+          AI Support Agent
+        </h2>
         <button className="chat-widget__clear" onClick={clearChat}>
           Clear
         </button>
