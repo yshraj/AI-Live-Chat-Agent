@@ -8,8 +8,8 @@ services:
     env: python
     region: oregon  # Change to your preferred region
     plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: cd backend && pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: GOOGLE_API_KEY
         sync: false  # Set this in Render dashboard
