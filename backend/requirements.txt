@@ -13,15 +13,9 @@ redis==5.0.1
 # AI & ML
 google-genai>=0.2.0  # Google Gemini SDK (new package) - REQUIRED
 # Note: google-generativeai is deprecated, but kept as fallback. Install google-genai instead.
-sentence-transformers>=2.3.0,<3.0.0  # Compatible with modern huggingface-hub
-huggingface-hub>=0.20.0  # Required for sentence-transformers 2.3+
-transformers>=4.21.0  # Required by sentence-transformers
-numpy==1.24.3
-# PyTorch installation:
-# - For LOCAL development: Install normally from PyPI (pip install torch>=2.0.0)
-# - For PRODUCTION (Render): CPU-only torch is installed automatically via build command
-# Note: CPU-only PyTorch repo only has versions >= 2.0.0, so we use >=2.0.0 here
-torch>=2.0.0  # Compatible with both PyPI and CPU-only repository
+# Embeddings: Using Hugging Face Inference API (free, no local model needed)
+# No need for sentence-transformers, transformers, torch, or huggingface-hub
+numpy==1.24.3  # Only needed for cosine similarity calculations
 
 # Configuration
 python-dotenv==1.0.0

@@ -30,15 +30,29 @@ export const api = {
     message: string,
     sessionId?: string
   ): Promise<{ reply: string; sessionId: string }> {
-    const response = await fetch(`${API_URL}/chat/message`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ message, sessionId }),
-    });
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
 
-    return handleResponse(response);
+    try {
+      const response = await fetch(`${API_URL}/chat/message`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ message, sessionId }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      return handleResponse(response);
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      if (error.name === 'AbortError') {
+        throw new ApiError("Request timeout - server took too long to respond", 504, "Timeout");
+      }
+      throw error;
+    }
   },
 
   async getHistory(sessionId: string): Promise<{ messages: any[] }> {

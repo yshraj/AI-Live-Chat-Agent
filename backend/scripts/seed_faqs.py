@@ -1,6 +1,7 @@
 """Script to seed FAQs with embeddings into MongoDB."""
 import sys
 import os
+import time
 from pathlib import Path
 
 # Add parent directory to path to import app modules
@@ -152,20 +153,44 @@ def seed_faqs():
         logger.info("Creating database indexes...")
         create_indexes()
         
-        logger.info("Generating embeddings for FAQs...")
+        # Check which embedding service is configured
+        from app.services.embedding_service import COHERE_MODEL, COHERE_API_KEY, HF_API_KEY
+        if COHERE_API_KEY:
+            logger.info(f"Generating embeddings for FAQs using Cohere API (model: {COHERE_MODEL})...")
+            logger.info("Note: Using 'search_document' input type for FAQ content")
+        elif HF_API_KEY:
+            logger.info("Generating embeddings for FAQs using Hugging Face API...")
+            logger.info("Note: First request may take 5-10 seconds (model loading)")
+        else:
+            logger.error("No embedding API key configured!")
+            raise Exception("Please set COHERE_API_KEY or HUGGINGFACE_API_KEY in .env file")
         faqs_to_insert = []
         
-        for faq_data in SAMPLE_FAQS:
-            # Generate embedding for the question
-            question_embedding = generate_embedding(faq_data["question"])
-            
-            faq = FAQ(
-                category=faq_data["category"],
-                question=faq_data["question"],
-                answer=faq_data["answer"],
-                embedding=question_embedding
-            )
-            faqs_to_insert.append(faq)
+        for i, faq_data in enumerate(SAMPLE_FAQS, 1):
+            try:
+                logger.info(f"[{i}/{len(SAMPLE_FAQS)}] Generating embedding for: '{faq_data['question'][:50]}...'")
+                # Generate embedding for the question using API
+                # Use "search_document" for FAQ content (same model as queries, but optimized for documents)
+                question_embedding = generate_embedding(faq_data["question"], input_type="search_document")
+                
+                faq = FAQ(
+                    category=faq_data["category"],
+                    question=faq_data["question"],
+                    answer=faq_data["answer"],
+                    embedding=question_embedding
+                )
+                faqs_to_insert.append(faq)
+                
+                # Small delay to respect API rate limits (free tier: ~30 req/min)
+                # Wait 2 seconds between requests to stay under limit
+                if i < len(SAMPLE_FAQS):
+                    time.sleep(2)
+                    
+            except Exception as e:
+                logger.error(f"Failed to generate embedding for FAQ {i}: {e}")
+                logger.warning("Continuing with remaining FAQs...")
+                # Continue with next FAQ instead of failing completely
+                continue
         
         logger.info(f"Inserting {len(faqs_to_insert)} FAQs into database...")
         

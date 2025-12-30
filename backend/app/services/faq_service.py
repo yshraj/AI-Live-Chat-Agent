@@ -67,8 +67,14 @@ def get_relevant_faqs(query: str, top_k: int = 3) -> List[Tuple[FAQ, float]]:
     # Cache miss or Redis unavailable - compute results
     logger.info(f"🔄 Computing FAQ search for: '{query[:50]}...'")
     
-    # Generate embedding for query
-    query_embedding = generate_embedding(query)
+    # Generate embedding for query (with error handling)
+    # Use "search_query" input type for user queries (optimized for search)
+    try:
+        query_embedding = generate_embedding(query, input_type="search_query")
+    except Exception as e:
+        logger.error(f"Failed to generate embedding for FAQ search: {e}")
+        logger.warning("Continuing without FAQ context - chat will still work")
+        return []  # Return empty list so chat can continue without FAQ context
     
     # Get all FAQs from database
     all_faqs = FAQ.find_all()
@@ -83,8 +89,12 @@ def get_relevant_faqs(query: str, top_k: int = 3) -> List[Tuple[FAQ, float]]:
         if not faq.embedding:
             continue
         
-        similarity = cosine_similarity(query_embedding, faq.embedding)
-        faq_scores.append((faq, similarity))
+        try:
+            similarity = cosine_similarity(query_embedding, faq.embedding)
+            faq_scores.append((faq, similarity))
+        except Exception as e:
+            logger.warning(f"Failed to calculate similarity for FAQ {faq.id}: {e}")
+            continue
     
     # Sort by similarity (descending) and take top_k
     faq_scores.sort(key=lambda x: x[1], reverse=True)
