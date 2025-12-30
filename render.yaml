@@ -11,6 +11,8 @@ services:
     buildCommand: cd backend && pip install --upgrade pip setuptools wheel && pip install -r requirements.txt
     startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9  # Required for numpy==1.24.3 compatibility
       - key: GOOGLE_API_KEY
         sync: false  # Set this in Render dashboard
       - key: GOOGLE_MODEL
