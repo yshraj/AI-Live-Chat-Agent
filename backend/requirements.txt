@@ -17,7 +17,10 @@ sentence-transformers>=2.3.0,<3.0.0  # Compatible with modern huggingface-hub
 huggingface-hub>=0.20.0  # Required for sentence-transformers 2.3+
 transformers>=4.21.0  # Required by sentence-transformers
 numpy==1.24.3
-torch>=1.13.0  # Required by sentence-transformers
+# Use CPU-only PyTorch to reduce memory footprint (saves ~200-300MB)
+# Install with: pip install torch --index-url https://download.pytorch.org/whl/cpu
+# For production, we'll install CPU-only torch in build command
+torch>=1.13.0,<2.0.0  # Required by sentence-transformers (CPU-only version recommended)
 
 # Configuration
 python-dotenv==1.0.0

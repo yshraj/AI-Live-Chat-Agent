@@ -3,6 +3,7 @@ from typing import List
 import numpy as np
 from sentence_transformers import SentenceTransformer
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -11,18 +12,25 @@ _model: SentenceTransformer = None
 
 
 def get_embedding_model() -> SentenceTransformer:
-    """Get or load the embedding model."""
+    """Get or load the embedding model with memory optimizations."""
     global _model
     if _model is None:
-        logger.info("Loading sentence-transformers model...")
-        _model = SentenceTransformer('all-MiniLM-L6-v2')
-        logger.info("Model loaded successfully")
+        logger.info("Loading sentence-transformers model with memory optimizations...")
+        # Use CPU-only and memory-efficient settings
+        # Set environment variables to reduce memory usage
+        os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")  # Disable tokenizer parallelism
+        os.environ.setdefault("OMP_NUM_THREADS", "1")  # Limit OpenMP threads
+        
+        # Load model with device='cpu' explicitly
+        # Note: sentence-transformers automatically uses CPU if CUDA is not available
+        _model = SentenceTransformer('all-MiniLM-L6-v2', device='cpu')
+        logger.info("Model loaded successfully with memory optimizations")
     return _model
 
 
 def generate_embedding(text: str) -> List[float]:
     """
-    Generate embedding for a given text.
+    Generate embedding for a given text with memory optimizations.
     
     Args:
         text: Input text to embed
@@ -31,7 +39,13 @@ def generate_embedding(text: str) -> List[float]:
         List of floats representing the embedding vector
     """
     model = get_embedding_model()
-    embedding = model.encode(text, convert_to_numpy=True)
+    # Use smaller batch size and convert to numpy immediately to free memory
+    embedding = model.encode(
+        text,
+        convert_to_numpy=True,
+        batch_size=1,  # Process one at a time to reduce memory
+        show_progress_bar=False  # Disable progress bar to save memory
+    )
     return embedding.tolist()
 
 
