@@ -1,26 +1,51 @@
 """Service for Google Gemini LLM integration."""
-import google.generativeai as genai
-from typing import List, Dict, Optional
+import logging
+import asyncio
+import warnings
+from typing import List, Dict, Optional, Union, Any
 from app.core.config import settings
 from app.core.exceptions import LLMServiceException
 from app.utils.retry import retry_with_exponential_backoff
-import logging
-import asyncio
 
 logger = logging.getLogger(__name__)
 
-# Initialize Gemini client (will be initialized after settings are loaded)
-_model: Optional[genai.GenerativeModel] = None
+# Try to import new package, fallback to old one
+_client_new = None
+_model_old = None
+GENAI_NEW = False
+genai = None
+
+try:
+    # Try new google.genai package
+    from google import genai
+    GENAI_NEW = True
+    logger.info("✅ Using google.genai package (new)")
+except ImportError:
+    # Fallback to old package
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=FutureWarning, message=".*google.generativeai.*")
+        import google.generativeai as genai
+    GENAI_NEW = False
+    logger.warning("⚠️  Using deprecated google.generativeai package. Please install google-genai: pip install google-genai")
 
 
-def get_gemini_model() -> genai.GenerativeModel:
-    """Get or create Gemini model instance."""
-    global _model
-    if _model is None:
-        genai.configure(api_key=settings.google_api_key)
-        _model = genai.GenerativeModel(settings.google_model)
-        logger.info(f"Initialized Google Gemini client with model: {settings.google_model}")
-    return _model
+def get_gemini_client():
+    """Get or create Gemini client instance (new API) or model (old API)."""
+    global _client_new, _model_old
+    
+    if GENAI_NEW:
+        # New google.genai package - use Client
+        if _client_new is None:
+            _client_new = genai.Client(api_key=settings.google_api_key)
+            logger.info(f"Initialized Google Gemini Client with model: {settings.google_model} (new API)")
+        return _client_new
+    else:
+        # Old google.generativeai package - use GenerativeModel
+        if _model_old is None:
+            genai.configure(api_key=settings.google_api_key)
+            _model_old = genai.GenerativeModel(settings.google_model)
+            logger.info(f"Initialized Google Gemini Model: {settings.google_model} (old API)")
+        return _model_old
 
 
 def format_messages_for_gemini(messages: List[Dict[str, str]]) -> List[Dict[str, str]]:
@@ -60,47 +85,30 @@ async def generate_reply(
         LLMServiceException: If LLM API call fails
     """
     try:
-        # Build system prompt with brand voice and context
-        system_prompt = """You are an AI customer support agent for a small e-commerce store. Your role is to help customers with their questions about products, orders, shipping, returns, and general inquiries.
+        # Build optimized system prompt with clear role definition and STRICT brevity requirements
+        system_prompt = """You are a customer support agent for an e-commerce store. You work for this store and help customers with their questions.
 
-**YOUR PURPOSE:**
-- Provide accurate, helpful, and friendly customer support
-- Answer questions about products, shipping, returns, and store policies
-- Guide customers through common issues and processes
-- Maintain a professional yet warm and approachable tone
+**Your Role:** You represent the store and provide helpful information about products, orders, shipping, returns, and store policies. You ARE part of the store's support team.
 
-**WHAT YOU CAN DO:**
-- Answer questions about products, shipping, returns, refunds, and store policies
-- Provide information from the FAQ knowledge base
-- Help with order tracking and status inquiries
-- Explain store processes and procedures
-- Offer general guidance on e-commerce topics related to the store
+**CRITICAL - Response Length Rules:**
+- Keep answers BRIEF and CONCISE. Average response should be 3-4 lines maximum.
+- For short questions, give short answers (1-2 lines).
+- Only use bullet points (max 3-4) if absolutely necessary for clarity.
+- NEVER write long paragraphs. Use brief, direct sentences.
+- Format: Brief sentences, not paragraphs. Be conversational but concise.
+- If a question needs detail, provide ONLY the essential information in 3-4 lines or 3-4 brief bullet points.
 
-**WHAT YOU CANNOT DO:**
-- Process orders, refunds, or payments (you can only provide information)
-- Access customer accounts or personal information beyond what's shared
-- Make changes to orders or accounts
-- Provide technical support for third-party services
-- Answer questions unrelated to the e-commerce store (e.g., general knowledge, unrelated topics)
-- Provide medical, legal, or financial advice
+**Response Style:** Be warm, professional, and BRIEF. Get to the point quickly. Customers want quick answers, not essays.
 
-**BRAND VOICE & COMMUNICATION STYLE:**
-- Be friendly, empathetic, and solution-oriented
-- Use clear, concise language (avoid jargon unless necessary)
-- Be professional but warm and approachable
-- Show genuine care for customer concerns
-- Keep responses focused and relevant
-- Use a helpful, supportive tone
+**Important:** Always act as if you work for the store. Never say you don't sell products or that you're just an AI. You are the store's support agent helping customers.
 
-**IMPORTANT GUIDELINES:**
-- If a question is out of scope (not related to the store, products, orders, shipping, or returns), politely redirect: "I'm here to help with questions about our store, products, orders, shipping, and returns. Could you tell me how I can assist you with something related to our store?"
-- If you don't know something specific, admit it honestly and offer to help find the answer or direct them to contact support
-- Always prioritize accuracy over speed
-- If a question requires account access or order modification, direct them to contact customer support directly"""
+**Scope:** Only answer store-related questions. For out-of-scope questions, redirect: "I'm here to help with our store, products, orders, shipping, and returns. How can I assist you?"
+
+**Limitations:** You provide information only. For order changes/refunds, direct customers to contact support."""
         
         # Add FAQ context if available
         if faq_context:
-            system_prompt = f"{system_prompt}\n\n**RELEVANT FAQ KNOWLEDGE:**\n{faq_context}\n\nUse this information to answer customer questions accurately. If the FAQ doesn't contain relevant information, you can still help with general guidance, but be clear about limitations."
+            system_prompt = f"{system_prompt}\n\n**FAQ:**\n{faq_context}\n\nUse FAQ info when relevant. Provide complete, detailed answers based on this information."
         
         # Build conversation history for Gemini
         formatted_history = format_messages_for_gemini(conversation_history)
@@ -120,25 +128,90 @@ async def generate_reply(
             chat_history = formatted_history
         
         # Call Gemini API (run in executor since it's synchronous)
-        model = get_gemini_model()
+        client_or_model = get_gemini_client()
         loop = asyncio.get_event_loop()
         
         # Run synchronous API call in executor to avoid blocking
         def call_gemini():
-            chat = model.start_chat(history=chat_history)
-            response = chat.send_message(
-                full_user_message,
-                generation_config={
-                    "max_output_tokens": settings.llm_max_tokens,
-                    "temperature": settings.llm_temperature,
-                }
-            )
-            return response
+            if GENAI_NEW:
+                # New API: use Client.models.generate_content
+                client = client_or_model
+                # Build contents list from history + current message
+                contents = []
+                for msg in chat_history:
+                    role = "user" if msg["role"] == "user" else "model"
+                    contents.append({"role": role, "parts": [{"text": msg["parts"][0]["text"]}]})
+                contents.append({"role": "user", "parts": [{"text": full_user_message}]})
+                
+                response = client.models.generate_content(
+                    model=settings.google_model,
+                    contents=contents,
+                    config={
+                        "max_output_tokens": settings.llm_max_tokens,
+                        "temperature": settings.llm_temperature,
+                    }
+                )
+                # New API response has .text attribute directly
+                # Create a compatible response object for consistency
+                class Response:
+                    def __init__(self, text, candidates=None):
+                        self.text = text
+                        self.candidates = candidates or []
+                
+                # Extract text from response (new API structure)
+                response_text = ""
+                candidates_list = []
+                
+                if hasattr(response, 'text'):
+                    response_text = response.text
+                elif hasattr(response, 'candidates') and response.candidates:
+                    # Try to extract from candidates
+                    try:
+                        candidate = response.candidates[0]
+                        if hasattr(candidate, 'content') and hasattr(candidate.content, 'parts'):
+                            response_text = candidate.content.parts[0].text if candidate.content.parts else ""
+                        candidates_list = response.candidates
+                    except Exception:
+                        pass
+                
+                return Response(response_text, candidates_list)
+            else:
+                # Old API: use GenerativeModel.start_chat
+                model = client_or_model
+                chat = model.start_chat(history=chat_history)
+                response = chat.send_message(
+                    full_user_message,
+                    generation_config={
+                        "max_output_tokens": settings.llm_max_tokens,
+                        "temperature": settings.llm_temperature,
+                    }
+                )
+                return response
         
         response = await loop.run_in_executor(None, call_gemini)
         
-        reply_text = response.text.strip()
-        logger.info(f"Generated reply (length: {len(reply_text)})")
+        # Check if response was truncated
+        reply_text = response.text.strip() if hasattr(response, 'text') and response.text else ""
+        
+        # Check if response might be incomplete (Gemini sometimes truncates)
+        if not reply_text:
+            raise LLMServiceException("Empty response from LLM")
+        
+        # Check finish reason to detect truncation
+        finish_reason = "UNKNOWN"
+        try:
+            if hasattr(response, 'candidates') and response.candidates:
+                finish_reason = response.candidates[0].finish_reason if hasattr(response.candidates[0], 'finish_reason') else "UNKNOWN"
+        except Exception:
+            pass
+        
+        # Log warning if response was truncated
+        if finish_reason == "MAX_TOKENS":
+            logger.warning(f"Response truncated due to max tokens. Length: {len(reply_text)}, Max tokens: {settings.llm_max_tokens}")
+        elif reply_text.endswith("...") and len(reply_text) > 100:
+            logger.warning(f"Response might be truncated (ends with '...'). Length: {len(reply_text)}")
+        
+        logger.info(f"Generated reply (length: {len(reply_text)}, finish_reason: {finish_reason})")
         
         return reply_text
         

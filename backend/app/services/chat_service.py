@@ -8,10 +8,16 @@ from app.services.llm_service import generate_reply
 from app.services.faq_service import get_relevant_faqs, format_faq_context
 from app.core.config import settings
 from app.core.exceptions import DatabaseException, LLMServiceException
+from app.db.redis_client import get_redis_client
 import uuid
 import logging
+import json
+import hashlib
 
 logger = logging.getLogger(__name__)
+
+# Cache TTL for LLM responses (30 minutes)
+LLM_RESPONSE_CACHE_TTL = 1800
 
 
 def _is_greeting(message: str) -> bool:
@@ -162,24 +168,122 @@ async def process_message(
             logger.info(f"Processed greeting message for session {session_id} (skipped RAG/LLM). Saved {user_msg._id} and {ai_msg._id}")
             return ai_reply, session_id
         
-        # Get FAQ context if needed
-        faq_context = None
-        if not is_greeting and not is_simple_query:
-            relevant_faqs = get_relevant_faqs(message, top_k=3)
-            faq_context = format_faq_context(relevant_faqs)
+        # Check cache for LLM response (cache all responses, including those with conversation history)
+        redis_client = get_redis_client()
+        ai_reply = None
         
-        # Generate AI reply
-        try:
-            ai_reply = await generate_reply(
-                user_message=message,
-                conversation_history=conversation_history,
-                faq_context=faq_context
-            )
-            logger.info(f"Generated AI reply (length: {len(ai_reply)})")
-        except LLMServiceException as e:
-            # Use friendly error message
-            ai_reply = "I apologize, but I'm experiencing technical difficulties right now. Please try again in a moment, or contact our support team directly."
-            logger.error(f"LLM service error: {e}")
+        # Log conversation history status for debugging
+        logger.info(f"📊 Cache check - History length: {len(conversation_history)}, Redis available: {redis_client is not None}")
+        
+        # Always cache LLM responses (include conversation history in cache key for context-aware caching)
+        should_cache = redis_client is not None
+        
+        if should_cache:
+            # Include conversation history in cache key to ensure context-aware caching
+            # Hash the conversation history to create a unique key for each conversation context
+            history_hash = ""
+            if conversation_history:
+                history_str = json.dumps(conversation_history, sort_keys=True, default=str)
+                history_hash = hashlib.sha256(history_str.encode()).hexdigest()[:16]
+            
+            message_hash = hashlib.sha256(message.lower().strip().encode()).hexdigest()[:16]
+            cache_key = f"llm_response:{message_hash}:{history_hash}" if history_hash else f"llm_response:{message_hash}"
+            
+            # Determine Redis type for logging
+            redis_type = "Upstash" if hasattr(redis_client, 'rest_url') or hasattr(redis_client, 'rest_token') else "Redis"
+            
+            try:
+                logger.info(f"🔍 Checking {redis_type} cache for LLM response - Query: '{message[:50]}...' | History: {len(conversation_history)} | Key: {cache_key[:32]}...")
+                cached_reply = redis_client.get(cache_key)
+                if cached_reply:
+                    ai_reply = cached_reply
+                    logger.info(f"✅ LLM CACHE HIT from {redis_type} - Query: '{message[:50]}...' | Response length: {len(cached_reply)} chars | Key: {cache_key[:32]}...")
+                else:
+                    logger.info(f"❌ LLM CACHE MISS from {redis_type} - Query: '{message[:50]}...' | Key: {cache_key[:32]}...")
+            except Exception as e:
+                logger.error(f"❌ {redis_type} cache read failed for LLM response - Query: '{message[:50]}...' | Error: {e}", exc_info=True)
+        
+        # Generate AI reply if not cached
+        if not ai_reply:
+            # Get FAQ context if needed
+            faq_context = None
+            if not is_greeting and not is_simple_query:
+                relevant_faqs = get_relevant_faqs(message, top_k=3)
+                faq_context = format_faq_context(relevant_faqs)
+            
+            # Generate AI reply
+            try:
+                logger.info(f"🔄 Generating LLM response for: '{message[:50]}...'")
+                ai_reply = await generate_reply(
+                    user_message=message,
+                    conversation_history=conversation_history,
+                    faq_context=faq_context
+                )
+                logger.info(f"Generated AI reply (length: {len(ai_reply)})")
+                
+                # Cache the response (always cache, including those with conversation history)
+                if should_cache:
+                    # Include conversation history in cache key to ensure context-aware caching
+                    history_hash = ""
+                    if conversation_history:
+                        history_str = json.dumps(conversation_history, sort_keys=True, default=str)
+                        history_hash = hashlib.sha256(history_str.encode()).hexdigest()[:16]
+                    
+                    message_hash = hashlib.sha256(message.lower().strip().encode()).hexdigest()[:16]
+                    cache_key = f"llm_response:{message_hash}:{history_hash}" if history_hash else f"llm_response:{message_hash}"
+                    
+                    try:
+                        # Determine Redis type for logging
+                        redis_type = "Upstash" if hasattr(redis_client, 'rest_url') or hasattr(redis_client, 'rest_token') else "Redis"
+                        
+                        logger.info(f"💾 ATTEMPTING to push LLM answer to {redis_type} cache - Query: '{message[:50]}...' | Response length: {len(ai_reply)} chars | Key: {cache_key[:32]}... | TTL: {LLM_RESPONSE_CACHE_TTL}s | History: {len(conversation_history)}")
+                        
+                        # Check response size (Upstash free tier has limits)
+                        if len(ai_reply) > 100000:  # 100KB limit for Upstash free tier
+                            logger.warning(f"⚠️  Response too large for cache ({len(ai_reply)} chars). Skipping cache.")
+                        else:
+                            # Log before write attempt
+                            logger.info(f"📝 Calling setex - Key: {cache_key[:32]}... | TTL: {LLM_RESPONSE_CACHE_TTL} | Value length: {len(ai_reply)}")
+                            
+                            cache_success = redis_client.setex(
+                                cache_key,
+                                LLM_RESPONSE_CACHE_TTL,
+                                ai_reply
+                            )
+                            
+                            logger.info(f"📝 setex returned: {cache_success} (type: {type(cache_success)})")
+                            
+                            if cache_success:
+                                logger.info(f"✅ SUCCESSFULLY CACHED LLM response in {redis_type} - Query: '{message[:50]}...' | Response: {len(ai_reply)} chars | Key: {cache_key[:32]}... | TTL: {LLM_RESPONSE_CACHE_TTL}s | History: {len(conversation_history)}")
+                            else:
+                                logger.error(f"❌ FAILED to cache LLM response in {redis_type} (setex returned False/None) - Query: '{message[:50]}...' | Key: {cache_key[:32]}... | Response length: {len(ai_reply)}")
+                                # Try to get more details about the failure
+                                try:
+                                    # Test if we can write at all
+                                    test_key = f"test_write:{cache_key[:16]}"
+                                    logger.info(f"🧪 Testing write with key: {test_key}")
+                                    test_result = redis_client.setex(test_key, 60, "test")
+                                    logger.info(f"🧪 Test write result: {test_result} (type: {type(test_result)})")
+                                    if test_result:
+                                        redis_client.delete(test_key)
+                                        logger.info("🧪 Test write succeeded, but main write failed")
+                                    else:
+                                        logger.error("🧪 Test write also failed - Redis write operations not working")
+                                except Exception as test_e:
+                                    logger.error(f"🧪 Test write exception: {test_e}", exc_info=True)
+                    except Exception as e:
+                        redis_type = "Upstash" if hasattr(redis_client, 'rest_url') or hasattr(redis_client, 'rest_token') else "Redis"
+                        logger.error(f"❌ Redis/{redis_type} cache write EXCEPTION - Query: '{message[:50]}...' | Error: {e}", exc_info=True)
+                else:
+                    if not redis_client:
+                        logger.info("⚠️  Redis client not available, skipping cache write")
+                    else:
+                        logger.info(f"⚠️  Skipping cache write - should_cache=False")
+                        
+            except LLMServiceException as e:
+                # Use friendly error message
+                ai_reply = "I apologize, but I'm experiencing technical difficulties right now. Please try again in a moment, or contact our support team directly."
+                logger.error(f"LLM service error: {e}")
         
         # Ensure AI reply is not empty
         if not ai_reply or not ai_reply.strip():

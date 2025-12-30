@@ -30,7 +30,7 @@ def _get_cache_key(query: str, top_k: int) -> str:
 
 def get_relevant_faqs(query: str, top_k: int = 3) -> List[Tuple[FAQ, float]]:
     """
-    Retrieve relevant FAQs using semantic search.
+    Retrieve relevant FAQs using semantic search with caching.
     
     Args:
         query: User query text
@@ -39,22 +39,33 @@ def get_relevant_faqs(query: str, top_k: int = 3) -> List[Tuple[FAQ, float]]:
     Returns:
         List of tuples (FAQ, similarity_score) sorted by relevance
     """
-    # Check Redis cache first
     redis_client = get_redis_client()
     cache_key = _get_cache_key(query, top_k)
     
+    # Try to get from cache first
     if redis_client:
         try:
             cached_result = redis_client.get(cache_key)
             if cached_result:
-                logger.debug(f"Cache hit for query: {query[:50]}")
-                # Parse cached result
-                cached_data = json.loads(cached_result)
-                faqs = [FAQ.from_dict(faq_dict) for faq_dict in cached_data["faqs"]]
-                scores = cached_data["scores"]
-                return list(zip(faqs, scores))
+                logger.info(f"✅ CACHE HIT - Query: '{query[:50]}...' (key: {cache_key[:16]}...)")
+                try:
+                    cached_data = json.loads(cached_result)
+                    faqs = [FAQ.from_dict(faq_dict) for faq_dict in cached_data["faqs"]]
+                    scores = cached_data["scores"]
+                    return list(zip(faqs, scores))
+                except (json.JSONDecodeError, KeyError, TypeError) as e:
+                    logger.warning(f"Failed to parse cached result: {e}. Clearing cache and recomputing.")
+                    try:
+                        redis_client.delete(cache_key)
+                    except Exception:
+                        pass
+            else:
+                logger.info(f"❌ CACHE MISS - Query: '{query[:50]}...' (key: {cache_key[:16]}...)")
         except Exception as e:
-            logger.warning(f"Redis cache read failed: {e}")
+            logger.warning(f"Redis cache read failed: {e}. Continuing without cache.")
+    
+    # Cache miss or Redis unavailable - compute results
+    logger.info(f"🔄 Computing FAQ search for: '{query[:50]}...'")
     
     # Generate embedding for query
     query_embedding = generate_embedding(query)
@@ -86,35 +97,41 @@ def get_relevant_faqs(query: str, top_k: int = 3) -> List[Tuple[FAQ, float]]:
                 "faqs": [faq.to_dict() for faq, _ in top_faqs],
                 "scores": [score for _, score in top_faqs]
             }
-            redis_client.setex(
+            cache_json = json.dumps(cache_data, default=str)
+            logger.info(f"💾 Attempting to cache results for query: '{query[:50]}...' (key: {cache_key[:16]}...)")
+            cache_success = redis_client.setex(
                 cache_key,
                 FAQ_CACHE_TTL,
-                json.dumps(cache_data, default=str)
+                cache_json
             )
+            if cache_success:
+                logger.info(f"✅ CACHED - Query: '{query[:50]}...' (TTL: {FAQ_CACHE_TTL}s, key: {cache_key[:16]}...)")
+            else:
+                logger.warning(f"⚠️  Failed to cache FAQ results (setex returned False) for query: '{query[:50]}...'")
         except Exception as e:
-            logger.warning(f"Redis cache write failed: {e}")
+            logger.error(f"❌ Redis cache write failed: {e}. Continuing without caching.", exc_info=True)
     
     return top_faqs
 
 
 def format_faq_context(faqs: List[Tuple[FAQ, float]]) -> str:
     """
-    Format FAQs into a context string for LLM prompt.
+    Format FAQs into a concise context string for LLM prompt.
     
     Args:
         faqs: List of (FAQ, similarity_score) tuples
         
     Returns:
-        Formatted context string
+        Formatted context string (concise format to save tokens)
     """
     if not faqs:
         return ""
     
-    context_parts = ["Relevant FAQ Knowledge:"]
+    # Use compact format to save tokens (but don't truncate - send full answers)
+    context_parts = []
     for i, (faq, score) in enumerate(faqs, 1):
-        context_parts.append(
-            f"{i}. Q: {faq.question}\n   A: {faq.answer}"
-        )
+        # Send full FAQ answer (no truncation) so LLM has complete information
+        context_parts.append(f"{i}. {faq.question} → {faq.answer}")
     
-    return "\n\n".join(context_parts)
+    return "\n".join(context_parts)
 

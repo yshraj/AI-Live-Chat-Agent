@@ -11,7 +11,8 @@ pymongo==4.6.0  # Includes bson module
 redis==5.0.1
 
 # AI & ML
-google-generativeai>=0.3.0  # Google Gemini SDK
+google-genai>=0.2.0  # Google Gemini SDK (new package) - REQUIRED
+# Note: google-generativeai is deprecated, but kept as fallback. Install google-genai instead.
 sentence-transformers>=2.3.0,<3.0.0  # Compatible with modern huggingface-hub
 huggingface-hub>=0.20.0  # Required for sentence-transformers 2.3+
 transformers>=4.21.0  # Required by sentence-transformers
