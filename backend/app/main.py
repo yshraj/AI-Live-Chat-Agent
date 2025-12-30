@@ -32,6 +32,7 @@ cors_origins = [
     "http://127.0.0.1:8080",
     # Production domains
     "https://ai-live-chat-agent-aijz.vercel.app",
+    "https://ai-live-chat-agent-five.vercel.app",
     # Add additional production domains via environment variable
     # Format: "https://your-app.vercel.app,https://your-app.netlify.app"
 ]
