@@ -23,7 +23,10 @@ cors_origins = [
     "http://localhost:3000",
     "http://localhost:5173",
     "http://localhost:5174",
-    # Add production domains via environment variable
+    "http://localhost:8080",
+    # Production domains
+    "https://ai-live-chat-agent-aijz.vercel.app",
+    # Add additional production domains via environment variable
     # Format: "https://your-app.vercel.app,https://your-app.netlify.app"
 ]
 
@@ -31,14 +34,22 @@ cors_origins = [
 import os
 additional_origins = os.getenv("CORS_ORIGINS", "")
 if additional_origins:
-    cors_origins.extend([origin.strip() for origin in additional_origins.split(",")])
+    # Split by comma and clean up whitespace
+    origins_list = [origin.strip() for origin in additional_origins.split(",") if origin.strip()]
+    cors_origins.extend(origins_list)
+    logging.info(f"CORS: Added origins from environment: {origins_list}")
+
+# Log allowed origins (without sensitive info)
+logging.info(f"CORS: Configured with {len(cors_origins)} allowed origin(s)")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=3600,  # Cache preflight requests for 1 hour
 )
 
 # Include routers
