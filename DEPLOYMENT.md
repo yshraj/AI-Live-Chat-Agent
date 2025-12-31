@@ -108,9 +108,11 @@ Choose one of these platforms:
    GOOGLE_MODEL=gemini-2.5-flash
    MONGODB_URL=mongodb+srv://<username>:<password>@cluster.mongodb.net/spur_chat?retryWrites=true&w=majority
    MONGODB_DB_NAME=spur_chat
-   REDIS_URL=redis://default:your_token@xxx.upstash.io:6379
+   UPSTASH_REDIS_REST_URL=https://xxx.upstash.io
+   UPSTASH_REDIS_REST_TOKEN=your_token_here
+   CORS_ORIGINS=https://your-frontend.vercel.app
    ```
-   **Note**: For Upstash Redis, you need to use the REST API. See "Redis Configuration" section below.
+   **Note**: For Upstash Redis, use the REST API credentials (UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN). See "Redis Configuration" section below for details.
 5. **Deploy**: Click **Create Web Service**
 6. **Wait for deployment** (5-10 minutes)
 7. **Copy your backend URL**: `https://spur-chat-backend.onrender.com` (or your custom domain)

@@ -1,5 +1,6 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
+  "$comment": "IMPORTANT: Set Root Directory to 'backend' in Railway dashboard (Settings → Deploy → Root Directory). Commands assume they run from backend/ directory.",
   "build": {
     "builder": "NIXPACKS",
     "buildCommand": "pip install -r requirements.txt"

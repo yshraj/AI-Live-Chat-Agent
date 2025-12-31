@@ -1,6 +1,10 @@
 # Render.com deployment configuration
 # This file makes it easier to deploy to Render.com
 # See: https://render.com/docs/yaml-spec
+#
+# IMPORTANT: This YAML file should be at the project root.
+# Commands use 'cd backend' to change to the backend directory.
+# If deploying via Render dashboard (not YAML), set Root Directory to 'backend' instead.
 
 services:
   - type: web

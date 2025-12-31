@@ -1,6 +1,6 @@
 # AI Live Chat Agent
 
-A full-stack AI-powered live chat support agent built with FastAPI (backend) and React (frontend), featuring MongoDB for persistence, Redis caching, Google Gemini LLM integration, and vector embeddings for FAQ retrieval.
+A full-stack AI-powered live chat support agent built with FastAPI (backend) and React (frontend), featuring MongoDB Atlas for persistence, Upstash Redis for caching, Google Gemini LLM integration, and vector embeddings for FAQ retrieval.
 
 ## 🎯 Project Overview
 
@@ -17,8 +17,8 @@ This is a production-ready AI chat agent that demonstrates:
 
 - **Backend**: Python FastAPI (async)
 - **Frontend**: React + TypeScript (Vite)
-- **Database**: MongoDB (via Docker)
-- **Cache**: Redis (via Docker)
+- **Database**: MongoDB (via Docker locally, or MongoDB Atlas for production)
+- **Cache**: Redis (via Docker locally, or Upstash Redis for production)
 - **LLM**: Google Gemini API (gemini-2.5-flash)
 - **Embeddings**: sentence-transformers (all-MiniLM-L6-v2) for FAQ semantic search
 - **Testing**: pytest + pytest-asyncio
@@ -102,7 +102,9 @@ cp .env.example .env
 
 #### 2. Database Setup & Migrations
 
-**Start MongoDB and Redis:**
+**Option A: Local Development (Docker)**
+
+Start MongoDB and Redis using Docker Compose:
 ```bash
 # Start services using Docker Compose
 docker-compose -f scripts/docker-compose.yml up -d
@@ -119,11 +121,30 @@ docker ps | grep redis
 docker ps | Select-String redis
 ```
 
+**Option B: Production/Cloud Setup (MongoDB Atlas + Upstash Redis)**
+
+For production deployment, you can use cloud services instead of Docker:
+
+1. **MongoDB Atlas** (Free tier - 512MB):
+   - Sign up at [MongoDB Atlas](https://www.mongodb.com/cloud/atlas/register)
+   - Create a free M0 cluster
+   - Get your connection string: `mongodb+srv://<username>:<password>@cluster.mongodb.net/spur_chat?retryWrites=true&w=majority`
+   - Set `MONGODB_URL` in your `.env` file
+
+2. **Upstash Redis** (Free tier - 10K commands/day):
+   - Sign up at [Upstash](https://upstash.com/)
+   - Create a free Regional Redis database
+   - Get your REST API credentials or connection string
+   - Set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` in your `.env` file
+   - Or use `UPSTASH_REDIS_URL` with connection string format
+
 **Note**: MongoDB automatically creates indexes on startup (no manual migrations needed). Indexes are created in `app/db/mongodb.py`:
 - `conversations.session_id` (unique)
 - `messages.conversation_id`
 - `messages.created_at`
 - Composite index: `(conversation_id, created_at)`
+
+For detailed cloud setup instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
 
 #### 3. Seed FAQs (Database Seeding)
 
@@ -203,11 +224,21 @@ GOOGLE_API_KEY=your_google_api_key_here
 GOOGLE_MODEL=gemini-2.5-flash   # Model name (e.g., gemini-2.5-flash, gemini-3-flash)
 
 # MongoDB Configuration
+# For local development (Docker):
 MONGODB_URL=mongodb://localhost:27017
+# For production (MongoDB Atlas):
+# MONGODB_URL=mongodb+srv://<username>:<password>@cluster.mongodb.net/spur_chat?retryWrites=true&w=majority
 MONGODB_DB_NAME=spur_chat
 
 # Redis Configuration
+# For local development (Docker):
 REDIS_URL=redis://localhost:6379
+# For production (Upstash Redis):
+# Option 1: Using REST API (recommended for serverless)
+# UPSTASH_REDIS_REST_URL=https://xxx.upstash.io
+# UPSTASH_REDIS_REST_TOKEN=your_token_here
+# Option 2: Using connection string
+# UPSTASH_REDIS_URL=rediss://default:password@xxx.upstash.io:6379
 
 # Application Settings
 MAX_MESSAGE_LENGTH=2000          # Max characters per message
@@ -250,6 +281,30 @@ echo "VITE_API_URL=http://localhost:8000" > .env
 ```
 
 **Note**: For production, update `VITE_API_URL` to your production backend URL.
+
+### Choosing Between Docker and Cloud Services
+
+**Use Docker (Local Development):**
+- ✅ Quick setup for local development
+- ✅ No external dependencies
+- ✅ Free and unlimited usage
+- ✅ Good for testing and development
+
+**Use MongoDB Atlas + Upstash Redis (Production/Cloud):**
+- ✅ No need to manage Docker containers
+- ✅ Better for production deployments
+- ✅ Free tiers available:
+  - MongoDB Atlas: 512MB storage (M0 free tier)
+  - Upstash Redis: 10,000 commands/day, 256MB storage
+- ✅ Automatic backups and scaling options
+- ✅ Better for serverless deployments (Render, Vercel, etc.)
+
+**The application automatically detects and uses the appropriate service based on your environment variables:**
+- If `MONGODB_URL` starts with `mongodb+srv://`, it uses MongoDB Atlas
+- If `UPSTASH_REDIS_REST_URL` or `UPSTASH_REDIS_URL` is set, it uses Upstash Redis
+- Otherwise, it falls back to local Docker services
+
+For detailed cloud setup instructions, see [DEPLOYMENT.md](DEPLOYMENT.md).
 
 ## Testing
 
@@ -426,7 +481,11 @@ The deployment guide covers:
 
 **Database Setup:**
 - **MongoDB**: Use MongoDB Atlas free tier (512MB)
+  - Connection string format: `mongodb+srv://<username>:<password>@cluster.mongodb.net/spur_chat?retryWrites=true&w=majority`
+  - Set `MONGODB_URL` environment variable
 - **Redis**: Use Upstash free tier (10K commands/day)
+  - Option 1: REST API (recommended for serverless) - Set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`
+  - Option 2: Connection string - Set `UPSTASH_REDIS_URL` (format: `rediss://default:password@xxx.upstash.io:6379`)
 
 ### Environment Setup for Production
 
